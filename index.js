@@ -19,7 +19,7 @@ app.use('/upload', Express.static(path.join(__dirname, 'upload')));
 
 
 app.use(cors({
-    origin: ['http://localhost:3000', 'http://localhost:3001'],
+    origin: ['http://localhost:3000', 'http://localhost:3001', 'https://carousel-show.vercel.app'],
     credentials: true
 }))
 
