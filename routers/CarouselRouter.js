@@ -86,13 +86,13 @@ CarouselRouter.post('/create-slide', isAuth, multiUpload, async (req, res) => {
                 const saveSlide = await newSlide.save();
 
                 if (saveSlide) {
-                    return res.send({ success: true, message: "Image and/or video uploaded successfully" });
+                    return res.send({ success: true, message: "Image and/or video uploaded successfully" })
                 } else {
-                    return res.send({ success: false, message: "Something went wrong. Please try again." });
+                    return res.send({ success: false, message: "Something went wrong. Please try again." })
                 }
             } else {
-                // Slide exists → append images/videos to it
-                if (duration) existingSlide.duration = duration; // Update duration if passed
+
+                if (duration) existingSlide.duration = duration;
 
                 if (newImageFile.length > 0) {
                     existingSlide.ImageSlide.push(...newImageFile);
@@ -146,6 +146,7 @@ CarouselRouter.post('/create-slide', isAuth, multiUpload, async (req, res) => {
 CarouselRouter.delete('/delete-file', isAuth, async (req, res) => {
     try {
         const { id, type, filename } = req.body; // type = 'ImageSlide' or 'VideoSlide'
+        console.log(id, type, filename)
 
         if (!id || !type || !filename) {
             return res.send({ success: false, message: 'Missing required parameters.' });
@@ -175,79 +176,7 @@ CarouselRouter.delete('/delete-file', isAuth, async (req, res) => {
     }
 })
 
-// Upadte particular images
 
-
-CarouselRouter.delete('/delete-image/:id', async (req, res) => {
-    try {
-        const { id, filename } = req.params;
-
-        const numericId = parseInt(id, 10);
-        if (isNaN(numericId)) {
-            return res.send({ success: false, message: "Invalid ID format" });
-        }
-
-        const carousel = await CarouselModel.findOne({ id: numericId });
-        if (!carousel) {
-            return res.send({ success: false, message: "Carousel not found" });
-        }
-
-        // Find and remove the image from ImageSlide array
-        const imageIndex = carousel.ImageSlide.findIndex(img => img.filename === filename);
-        if (imageIndex === -1) {
-            return res.send({ success: false, message: "Image not found" });
-        }
-
-        const imagePath = path.join(__dirname, '..', carousel.ImageSlide[imageIndex].filepath);
-        if (fs.existsSync(imagePath)) {
-            fs.unlinkSync(imagePath); // delete file from disk
-        }
-
-        carousel.ImageSlide.splice(imageIndex, 1); // remove from array
-        await carousel.save();
-
-        return res.send({ success: true, message: "Image deleted successfully" });
-    } catch (err) {
-        console.error("Error in Uploading image:", err);
-        return res.send({ success: false, message: 'Trouble in Carousel update image! Please contact support Team.' });
-    }
-});
-
-
-CarouselRouter.delete('/delete-video/:id', async (req, res) => {
-    try {
-        const { id, filename } = req.params;
-
-        const numericId = parseInt(id, 10);
-        if (isNaN(numericId)) {
-            return res.send({ success: false, message: "Invalid ID format" });
-        }
-
-        const carousel = await CarouselModel.findOne({ id: numericId });
-        if (!carousel) {
-            return res.send({ success: false, message: "Carousel not found" });
-        }
-
-        // Find and remove the image from ImageSlide array
-        const VideoIndex = carousel.VideoSlide.findIndex(video => video.filename === filename);
-        if (VideoIndex === -1) {
-            return res.send({ success: false, message: "Video not found" });
-        }
-
-        const Videopath = path.join(__dirname, '..', carousel.VideoSlide[VideoIndex].filepath);
-        if (fs.existsSync(Videopath)) {
-            fs.unlinkSync(Videopath); // delete file from disk
-        }
-
-        carousel.VideoSlide.splice(VideoIndex, 1); // remove from array
-        await carousel.save();
-
-        return res.send({ success: true, message: "Video deleted successfully" });
-    } catch (err) {
-        console.error("Error in Uploading video:", err);
-        return res.send({ success: false, message: 'Trouble in Carousel update video! Please contact support Team.' });
-    }
-});
 
 
 CarouselRouter.get('/getSliders', async (req, res) => {
