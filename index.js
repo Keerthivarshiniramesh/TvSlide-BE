@@ -23,7 +23,7 @@ app.use(cors({
     credentials: true
 }))
 
-app.set('trust proxy', 1)
+// app.set('trust proxy', 1)
 mongoose.connect(process.env.Mongo_DB)
     .then(() => console.log("MongoDb connected Successfully"))
     .catch((err) => console.log("Error in connecting", err))
@@ -38,12 +38,12 @@ app.use(session({
     secret: process.env.Secret_Key,
     resave: true,
     store: Store,
-    cookie: {
-        httpOnly: true,
-        sameSite: 'none',
-        secure: true
+    // cookie: {
+    //     httpOnly: true,
+    //     sameSite: 'none',
+    //     secure: true
 
-    }
+    // }
 }))
 
 

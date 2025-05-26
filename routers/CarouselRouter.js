@@ -4,6 +4,12 @@ const CarouselModel = require('../models/Carousel')
 const multer = require('multer')
 const path = require('path')
 const fs = require('fs')
+//convert avif file
+const sharp = require('sharp')
+
+// convert pdf to images
+const puppeteer = require('puppeteer')
+
 
 const uploads = 'upload/'
 if (!fs.existsSync(uploads)) {
@@ -23,7 +29,7 @@ const Storage = multer.diskStorage({
 // file filter based on some condition
 
 const filter = (req, file, cb) => {
-    const allowedMimes = ['image/jpeg', 'image/png', 'image/jpg', 'video/mp4', 'video/webm', 'video/x-matroska']; // mkv
+    const allowedMimes = ['image/jpeg', 'image/png', 'image/jpg', '.pdf']; // mkv
 
     if (allowedMimes.includes(file.mimetype)) {
         cb(null, true);
@@ -38,17 +44,105 @@ const filter = (req, file, cb) => {
 const upload = multer({
     storage: Storage,
     fileFilter: filter,
-    // limits: { fileSize: 7 * 1024 * 1024 }
+
 })
 
 const multiUpload = upload.fields([
     {
-        name: 'ImageSlide', maxCount: 5
+        name: 'ImageSlide', maxCount: 10
     },
     {
-        name: 'VideoSlide', maxCount: 5
+        name: 'PdfFile', maxCount: 10
     }
+
+
 ])
+
+// const wasmDir = path.resolve(__dirname, '../node_modules/@squoosh/codecs')
+// const wasmPath = pathToFileURL(wasmDir).href
+// console.log(wasmPath)
+// convert AVIF fileFilter
+
+// const imagePool = new ImagePool({
+//     codecsPath: pathToFileURL(path.resolve(__dirname, '../node_modules/@squoosh/codecs')).href
+// })
+
+
+// convertAVIF
+async function convertToAvif(inputPath) {
+    try {
+      
+        const outputPath = inputPath.replace(/\.(jpg|jpeg|png)$/i, '.avif');
+
+     
+        await sharp(inputPath)
+            .avif({ quality: 50 })  
+            .toFile(outputPath);
+
+        console.log(`Converted to AVIF: ${outputPath}`);
+        return outputPath;
+    } catch (err) {
+        console.error('Error converting image to AVIF:', err);
+
+        throw err;
+    }
+}
+
+
+// convert images
+// async function convertToImages(pdfpath) {
+//     try {
+//         const browser = await puppeteer.launch()
+//         const page = await browser.newPage()
+
+//         const pdfBuffer = fs.readFileSync(pdfpath)
+//         const pdfBase = pdfBuffer.toString('base64')
+//         const pdfUrl = `data:application/pdf;base64,${pdfBase}`
+
+//         await page.goto(pdfUrl, { waitUntil: 'networkidle0' })
+
+//         const totPages = await page.evaluate(() => {
+//             return PDFViewerApplication.pdfDocument.totPages
+//         })
+//             .catch(() => 1)
+
+//         const images = []
+
+//         for (let i = 1; i <= totPages; i++) {
+            
+//             await page.setViewport({ width: 800, height: 1000 })
+
+//             const screenshotPath = pdfpath.replace('.pdf', `-page${i}.png`)
+//             await page.screenshot({ path: screenshotPath, fullPage: true })
+
+//             images.push({
+//                 filename: path.basename(screenshotPath),
+//                 filepath: screenshotPath.replace(/\\/g, '/'),
+//             })
+//         }
+//         for (const img of images) {
+//             const ext = path.extname(img.filename).toLowerCase();
+//             if (['.jpg', '.jpeg', '.png'].includes(ext)) {
+//                 const avifPath = await convertToAvif(img.path);
+//                 const avifFilename = path.basename(avifPath);
+//                 convertedAvifFiles.push({
+//                     filename: avifFilename,
+//                     filepath: avifPath.replace(/\\/g, '/'),
+//                 })
+//             } else {
+//                 // keep original if not convertible
+//                 convertedAvifFiles.push({
+//                     filename: img.filename,
+//                     filepath: img.path.replace(/\\/g, '/'),
+//                 })
+//             }
+//         }
+//     }
+//     catch (err) {
+
+//     }
+
+// }
 
 const CarouselRouter = Express.Router()
 
@@ -58,17 +152,44 @@ CarouselRouter.post('/create-slide', isAuth, multiUpload, async (req, res) => {
         const { duration, id } = req.body;
 
         const ImageSlideFile = req.files?.['ImageSlide'] || [];
-        const VideoSlideFile = req.files?.['VideoSlide'] || [];
+        const PdfFiles = req.files?.['PdfFile'] || [];
 
-        const newImageFile = ImageSlideFile.map((imgs) => ({
-            filename: imgs.filename,
-            filepath: imgs.path.replace(/\\/g, '/'),
-        }));
+        const convertedAvifFiles = [];
 
-        const newVideoFile = VideoSlideFile.map((videos) => ({
-            filename: videos.filename,
-            filepath: videos.path.replace(/\\/g, '/'),
-        }));
+        for (const img of ImageSlideFile) {
+            const ext = path.extname(img.filename).toLowerCase();
+            if (['.jpg', '.jpeg', '.png'].includes(ext)) {
+                const avifPath = await convertToAvif(img.path);
+                const avifFilename = path.basename(avifPath);
+                convertedAvifFiles.push({
+                    filename: avifFilename,
+                    filepath: avifPath.replace(/\\/g, '/'),
+                });
+            } else {
+                // keep original if not convertible
+                convertedAvifFiles.push({
+                    filename: img.filename,
+                    filepath: img.path.replace(/\\/g, '/'),
+                });
+            }
+        }
+
+
+        // convert images
+        // for (const pdf of PdfFiles) {
+        //     const ext = path.extname(pdf.filename).toLowerCase();
+        //     if (['.pdf'].includes(ext)) {
+        //         await convertToImages(pdf.path)
+        //     }
+        // }
+
+
+        const newImageFile = convertedAvifFiles;
+
+        // const newPdf = PdfFiles.map((pdf) => ({
+        //     filename: pdf.filename,
+        //     filepath: pdf.path.replace(/\\/g, '/'),
+        // }));
 
         if (!id) {
             // Check if slide already exists (assuming only one slide ever)
@@ -80,13 +201,13 @@ CarouselRouter.post('/create-slide', isAuth, multiUpload, async (req, res) => {
                     id: 1,
                     duration,
                     ImageSlide: newImageFile,
-                    VideoSlide: newVideoFile,
+                    // PdfFile: newPdf,
                 });
 
                 const saveSlide = await newSlide.save();
 
                 if (saveSlide) {
-                    return res.send({ success: true, message: "Image and/or video uploaded successfully" })
+                    return res.send({ success: true, message: "Image  uploaded successfully" })
                 } else {
                     return res.send({ success: false, message: "Something went wrong. Please try again." })
                 }
@@ -98,14 +219,14 @@ CarouselRouter.post('/create-slide', isAuth, multiUpload, async (req, res) => {
                     existingSlide.ImageSlide.push(...newImageFile);
                 }
 
-                if (newVideoFile.length > 0) {
-                    existingSlide.VideoSlide.push(...newVideoFile);
-                }
+                // if (newPdf.length > 0) {
+                //     existingSlide.PdfFile.push(...newPdf);
+                // }
 
                 const updatedSlide = await existingSlide.save();
 
                 if (updatedSlide) {
-                    return res.send({ success: true, message: "Image and/or video uploaded successfully" });
+                    return res.send({ success: true, message: "Image  uploaded successfully" });
                 } else {
                     return res.send({ success: false, message: "Something went wrong. Please try again." });
                 }
@@ -124,14 +245,14 @@ CarouselRouter.post('/create-slide', isAuth, multiUpload, async (req, res) => {
                 existingSlide.ImageSlide.push(...newImageFile);
             }
 
-            if (newVideoFile.length > 0) {
-                existingSlide.VideoSlide.push(...newVideoFile);
-            }
+            // if (newPdf.length > 0) {
+            //     existingSlide.PdfFile.push(...newPdf);
+            // }
 
             const updatedSlide = await existingSlide.save();
 
             if (updatedSlide) {
-                return res.send({ success: true, message: "Image and/or video uploaded successfully" });
+                return res.send({ success: true, message: "Image  uploaded successfully" });
             } else {
                 return res.send({ success: false, message: "Something went wrong. Please try again." });
             }
@@ -145,7 +266,7 @@ CarouselRouter.post('/create-slide', isAuth, multiUpload, async (req, res) => {
 
 CarouselRouter.delete('/delete-file', isAuth, async (req, res) => {
     try {
-        const { id, type, filename } = req.body; // type = 'ImageSlide' or 'VideoSlide'
+        const { id, type, filename } = req.body; // type = 'ImageSlide' or 'PdfFile'
         console.log(id, type, filename)
 
         if (!id || !type || !filename) {
@@ -175,8 +296,6 @@ CarouselRouter.delete('/delete-file', isAuth, async (req, res) => {
         return res.send({ success: false, message: 'Trouble in Carousel delete! Please contact support Team.' });
     }
 })
-
-
 
 
 CarouselRouter.get('/getSliders', async (req, res) => {
