@@ -72,12 +72,12 @@ app.use(session({
     secret: process.env.Secret_Key,
     resave: false,
     store: Store,
-    // cookie: {
-    //     httpOnly: false,
-    //     sameSite: 'none',
-    //     secure: true
+    cookie: {
+        httpOnly: false,
+        sameSite: 'none',
+        secure: true
 
-    // }
+    }
 }))
 
 
