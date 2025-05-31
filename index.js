@@ -18,10 +18,44 @@ const path = require('path');
 app.use('/upload', Express.static(path.join(__dirname, 'upload')));
 
 
+// app.use(cors({
+//     origin: [`https://zgn3hlb1-3000.inc1.devtunnels.ms`, 'http://localhost:3000', 'http://localhost:3001', `https://carousel-show.vercel.app`],
+//     credentials: true
+// }))
+
+  
+
+
+const allowedOrigins = [
+    'https://zgn3hlb1-3000.inc1.devtunnels.ms',
+    'http://localhost:3000',
+    'http://localhost:3001',
+    'https://carousel-show.vercel.app'
+];  
+
 app.use(cors({
-    origin: ['http://localhost:3000', 'http://localhost:3001', 'https://carousel-show.vercel.app'],
+    origin: function (origin, callback) {
+        if (!origin || allowedOrigins.includes(origin)) {
+            callback(null, origin); // only one origin is returned here
+        } else {
+            callback(new Error('Not allowed by CORS'));
+        }
+    },
     credentials: true
-}))
+}));
+
+
+app.use((req, res, next) => {
+    const originalSetHeader = res.setHeader;
+    res.setHeader = function (name, value) {
+        if (name.toLowerCase().includes('access-control')) {
+            console.log(`[HEADER SET] ${name}: ${value}`);
+        }
+        originalSetHeader.apply(this, arguments);
+    };
+    next();
+});
+
 
 app.set('trust proxy', 1)
 mongoose.connect(process.env.Mongo_DB)
@@ -36,14 +70,14 @@ const Store = new mongoSession({
 app.use(session({
     saveUninitialized: false,
     secret: process.env.Secret_Key,
-    resave: true,
+    resave: false,
     store: Store,
-    cookie: {
-        httpOnly: true,
-        sameSite: 'none',
-        secure: true
+    // cookie: {
+    //     httpOnly: false,
+    //     sameSite: 'none',
+    //     secure: true
 
-    }
+    // }
 }))
 
 

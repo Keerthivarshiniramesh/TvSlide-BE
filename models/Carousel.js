@@ -9,6 +9,12 @@ const carouselSchema = mongoose.Schema({
         filepath: { type: String, required: true }
     }],
 
+    VideoSlide: [{
+        filename: { type: String, required: true },
+        filepath: { type: String, required: true }
+    }],
+
+
 
 }, { timestamps: true })
 
