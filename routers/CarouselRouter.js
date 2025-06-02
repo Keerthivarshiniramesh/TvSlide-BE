@@ -152,7 +152,7 @@ CarouselRouter.post('/create-slide', isAuth, multiUpload, async (req, res) => {
         const { duration, id } = req.body;
 
         const ImageSlideFile = req.files?.['ImageSlide'] || [];
-        const VideoSlideFile = req.files?.['VideoSlide'];
+        const VideoSlideFile = req.files?.['VideoSlide'] || [];
         console.log("Video is", VideoSlideFile)
         const convertedAvifFiles = [];
 
