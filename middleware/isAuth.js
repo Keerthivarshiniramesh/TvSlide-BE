@@ -3,6 +3,7 @@ const UserModel = require('../models/Users')
 const isAuth = async (req, res, next) => {
     try {
         if (!req.session.user) {
+           
             return res.send({ success: false, message: 'Please login to access this page!' })
         }
 

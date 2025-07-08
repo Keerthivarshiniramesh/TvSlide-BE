@@ -23,7 +23,7 @@ app.use('/upload', Express.static(path.join(__dirname, 'upload')));
 //     credentials: true
 // }))
 
-  
+
 
 
 const allowedOrigins = [
@@ -31,7 +31,7 @@ const allowedOrigins = [
     'http://localhost:3000',
     'http://localhost:3001',
     'https://carousel-show.vercel.app'
-];  
+];
 
 app.use(cors({
     origin: function (origin, callback) {
@@ -66,14 +66,14 @@ const Store = new mongoSession({
     uri: process.env.Mongo_DB,
     collection: 'Sessions'
 })
-
+console.log("True")
 app.use(session({
     saveUninitialized: false,
     secret: process.env.Secret_Key,
     resave: false,
     store: Store,
     // cookie: {
-    //     httpOnly: false,
+    //     httpOnly: true,
     //     sameSite: 'none',
     //     secure: true
 
@@ -83,7 +83,6 @@ app.use(session({
 
 app.use(AuthRouter)
 app.use(CarouselRouter)
-
 
 app.listen(process.env.PORT, () => {
     console.log("Server Running in ", process.env.PORT)

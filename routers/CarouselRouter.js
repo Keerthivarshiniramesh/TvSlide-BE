@@ -165,13 +165,14 @@ CarouselRouter.post('/create-slide', isAuth, multiUpload, async (req, res) => {
                     filename: avifFilename,
                     filepath: avifPath.replace(/\\/g, '/'),
                 });
-            } else {
-                // keep original if not convertible
-                convertedAvifFiles.push({
-                    filename: img.filename,
-                    filepath: img.path.replace(/\\/g, '/'),
-                });
             }
+            // else {
+            //     // keep original if not convertible
+            //     convertedAvifFiles.push({
+            //         filename: img.filename,
+            //         filepath: img.path.replace(/\\/g, '/'),
+            //     });
+            // }
         }
 
         const newVideoFile = []
@@ -270,10 +271,10 @@ CarouselRouter.post('/create-slide', isAuth, multiUpload, async (req, res) => {
 
 CarouselRouter.delete('/delete-file', isAuth, async (req, res) => {
     try {
-        const { id, type, filename } = req.body; // type = 'ImageSlide' or 'PdfFile'
-        console.log(id, type, filename)
+        const { id, type, filenames } = req.body; // type = 'ImageSlide' or 'VideoType'
+        console.log(id, type, filenames)
 
-        if (!id || !type || !filename) {
+        if (!id || !type || !filenames) {
             return res.send({ success: false, message: 'Missing required parameters.' });
         }
 
@@ -283,15 +284,70 @@ CarouselRouter.delete('/delete-file', isAuth, async (req, res) => {
         }
 
         // Filter out the file from the array
-        slide[type] = slide[type].filter(file => file.filename !== filename);
+
+        filenames.forEach((files, i) => {
+            slide[type] = slide[type].filter(file => file.filename !== files);
+        })
 
         await slide.save();
 
         // Delete the file from disk
-        const filePath = path.join(__dirname, '..', '..', 'upload', filename);
-        if (fs.existsSync(filePath)) {
-            fs.unlinkSync(filePath);
-        }
+        // console.log("Filename are :", typeof filenames)
+        let original = []
+        filenames.forEach((files) => {
+            let imgname = files.split('.')
+            console.log("Image get", imgname)
+            original.push(path.resolve('upload', imgname[0]))
+            console.log("Image get name", imgname[0])
+        })
+
+
+        console.log("Original Path", original)
+
+        let possibleFormat = ['.png', '.jpeg', '.jpg']
+
+
+        possibleFormat.forEach((ext, i) => {
+
+            original.forEach((originals) => {
+                if (fs.existsSync(originals.concat(ext))) {
+                    let originalPath = originals.concat(ext)
+                    setTimeout(() => {
+                        fs.unlink(originalPath, (err) => {
+                            if (err) {
+                                console.error("Failed to delete file:", err);
+                            } else {
+                                console.log("Deleted successfully:", originalPath);
+                            }
+                        });
+
+                    }, 2000);
+
+                    console.log(" original  image in the upload folder successfully")
+
+                }
+            })
+
+        })
+
+
+        filenames.forEach((filename) => {
+            const filePath = path.resolve('upload', filename)
+            console.log("FilePath", filePath)
+            if (fs.existsSync(filePath)) {
+                setTimeout(() => {
+                    fs.unlink(filePath, (err) => {
+                        if (err) console.error("Failed to delete:", err)
+                        else console.log("Deleted file from the MongoDB link:", filePath)
+                    })
+                }, 1000)
+
+            }
+            else {
+                console.log("Not exist link")
+            }
+        })
+
 
         return res.send({ success: true, message: `${type === 'ImageSlide' ? 'Image' : 'Video'} deleted successfully.` });
 

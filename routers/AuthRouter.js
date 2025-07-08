@@ -4,7 +4,6 @@ const isAuth = require('../middleware/isAuth')
 
 const AuthRouter = Express.Router()
 
-
 AuthRouter.post('/login', async (req, res) => {
     try {
         const { email, password } = req.body
@@ -35,7 +34,7 @@ AuthRouter.post('/login', async (req, res) => {
             if (err) {
                 return res.send({ success: false, message: "Failed to create session!" })
             }
-
+            console.log("Seesion login", req.session.user)
             return res.send({ success: true, message: "Logged in successfully!", user: req.session.user })
         })
 
@@ -118,6 +117,7 @@ AuthRouter.get('/checkauth', async (req, res) => {
             return res.send({ success: true, user: fetchUser, message: "Successfully fetched the current logged in User!" })
         }
         else {
+            console.log("Seesion:", req.session.user)
             return res.send({ success: false, message: "No loggin detected! please login and try again." })
         }
     }
